@@ -24,10 +24,7 @@ pipeline {
 
         stage('Debug') {
             steps {
-                script {
-                    def branchName = sh(script: 'git rev-parse --abbrev-ref HEAD', returnStdout: true).trim()
-                    echo "The current branch name is: ${branchName}"
-                }
+                echo "The current branch name is: ${env.GIT_BRANCH}"
             }
         }
 
