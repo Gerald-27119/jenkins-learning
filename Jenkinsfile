@@ -25,8 +25,9 @@ pipeline {
         stage('Debug') {
 			steps {
 				echo "The current GIT_BRANCH is: ${env.GIT_BRANCH}"
-				def isMultibranch = (currentBuild.projectName =~ /Multibranch/).find()
-				echo "Czy to pipeline wieloodgałęziony? ${isMultibranch}"
+				def isMultibranch = binding.hasVariable('scm')
+				echo "Is this a multibranch pipeline? ${isMultibranch}":contentReference[oaicite:18]{index=18}
+
             }
         }
 
