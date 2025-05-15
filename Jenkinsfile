@@ -14,27 +14,26 @@ pipeline {
 		timestamps()
     }
 
-{
+    stages {
 		stage('Checkout') {
-				steps {
-					script {
-						def scmVars = checkout scm
-					echo "Checked out branch: ${scmVars.GIT_BRANCH}"
-				}
-			}
+			steps {
+				script {
+					def scmVars = checkout scm
+            echo "Checked out branch: ${scmVars.GIT_BRANCH}"
+        		}
+    		}
 		}
 
 
-		stage('Debug') {
-					steps {
-						script {
-							echo "The current JOB_NAME is: ${env.JOB_NAME}"
-					def isMultibranch = env.JOB_NAME.contains('/')
-					echo "Is this a multibranch pipeline? ${isMultibranch}"
-				}
-			}
-		}
-
+        stage('Debug') {
+			steps {
+				script {
+					echo "The current JOB_NAME is: ${env.JOB_NAME}"
+            def isMultibranch = env.JOB_NAME.contains('/')
+            echo "Is this a multibranch pipeline? ${isMultibranch}"
+        		}
+    		}
+    	}
 
         stage('Validation') {
 			steps {
