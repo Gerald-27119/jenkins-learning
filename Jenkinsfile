@@ -14,22 +14,27 @@ pipeline {
 		timestamps()
     }
 
-    stages {
+{
 		stage('Checkout') {
-			steps {
-				// publiczne repo → po prostu klonuje to, co podałeś w konfiguracji joba
-                checkout scm
-            }
-        }
+				steps {
+					script {
+						def scmVars = checkout scm
+					echo "Checked out branch: ${scmVars.GIT_BRANCH}"
+				}
+			}
+		}
 
-        stage('Debug') {
-			steps {
-				echo "The current GIT_BRANCH is: ${env.GIT_BRANCH}"
-				def isMultibranch = binding.hasVariable('scm')
-				echo "Is this a multibranch pipeline? ${isMultibranch}":contentReference[oaicite:18]{index=18}
 
-            }
-        }
+		stage('Debug') {
+					steps {
+						script {
+							echo "The current JOB_NAME is: ${env.JOB_NAME}"
+					def isMultibranch = env.JOB_NAME.contains('/')
+					echo "Is this a multibranch pipeline? ${isMultibranch}"
+				}
+			}
+		}
+
 
         stage('Validation') {
 			steps {
