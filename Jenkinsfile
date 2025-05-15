@@ -24,7 +24,7 @@ pipeline {
 
         stage('Debug') {
             steps {
-                echo "The current branch name is: ${env.GIT_BRANCH}"
+                echo "The current GIT_BRANCH is: ${env.GIT_BRANCH}"
             }
         }
 
@@ -71,14 +71,14 @@ pipeline {
        }
 
         stage('Package') {
-            when { branch 'origin/master' }
+            when { equals expected: 'master', actual: env.GIT_BRANCH }
             steps {
                 sh "jar cf app-${BUILD_ID}.jar -C ${CLASS_DIR} ."
             }
         }
 
         stage('Archive') {
-            when { branch 'origin/master' }
+           when { equals expected: 'master', actual: env.GIT_BRANCH }
             steps {
                 archiveArtifacts artifacts: "app-${BUILD_ID}.jar,${REPORT_DIR}/**/*.xml", fingerprint: true
             }
