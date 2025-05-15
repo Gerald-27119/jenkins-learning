@@ -78,19 +78,14 @@ pipeline {
        }
 
         stage('Package') {
-			when {
-				expression { return env.BRANCH_NAME == 'master' }
-			}
+			when { branch 'master' }
             steps {
 				sh "jar cf app-${BUILD_ID}.jar -C ${CLASS_DIR} ."
             }
         }
 
         stage('Archive') {
-			when {
-				expression { return env.BRANCH_NAME == 'master' }
-			}
-
+			when { branch 'master' }
             steps {
 				archiveArtifacts artifacts: "app-${BUILD_ID}.jar,${REPORT_DIR}/**/*.xml", fingerprint: true
             }
