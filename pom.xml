@@ -75,5 +75,33 @@
             </plugin>
         </plugins>
     </build>
+    <profiles>
+        <profile>
+            <id>prepare-lib</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-dependency-plugin</artifactId>
+                        <version>3.8.1</version>
+                        <executions>
+                            <execution>
+                                <id>copy-dependencies</id>
+                                <phase>generate-sources</phase>
+                                <goals>
+                                    <goal>copy-dependencies</goal>
+                                </goals>
+                                <configuration>
+                                    <outputDirectory>${project.basedir}/lib</outputDirectory>
+                                    <!-- runtime zawiera również compile -->
+                                    <includeScope>runtime</includeScope>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 
 </project>
