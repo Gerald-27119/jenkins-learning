@@ -14,20 +14,20 @@ pipeline {
         timestamps()
     }
 
-    stage('Debug') {
-        steps {
-            script {
-                def branchName = sh(script: 'git rev-parse --abbrev-ref HEAD', returnStdout: true).trim()
-                echo "The current branch name is: ${branchName}"
-            }
-        }
-    }
-
     stages {
         stage('Checkout') {
             steps {
                 // publiczne repo → po prostu klonuje to, co podałeś w konfiguracji joba
                 checkout scm
+            }
+        }
+
+        stage('Debug') {
+            steps {
+                script {
+                    def branchName = sh(script: 'git rev-parse --abbrev-ref HEAD', returnStdout: true).trim()
+                    echo "The current branch name is: ${branchName}"
+                }
             }
         }
 
