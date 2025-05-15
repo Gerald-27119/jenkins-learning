@@ -45,23 +45,25 @@ pipeline {
             }
         }
 
-        stage('Test') {
-            steps {
-                unstash 'build-artifacts'
-                script {
-                    try {
-                        sh """
-                          java -jar lib/junit-platform-console-standalone-*.jar \
-                            --class-path ${CLASS_DIR}:${TEST_DIR}:lib/* \
-                            --scan-class-path \
-                            --reports-dir=${REPORT_DIR}
-                        """
-                    } finally {
-                        junit testResults: "${REPORT_DIR}/**/*.xml", allowEmptyResults: true
-                    }
-                }
-            }
-        }
+       stage('Test') {
+         steps {
+           unstash 'build-artifacts'
+           // DOPISZ to:
+           sh 'echo "Zawartość lib:" && ls -l lib'
+           script {
+             try {
+               sh """
+                 java -jar lib/junit-platform-console-standalone-*.jar \
+                   --class-path ${CLASS_DIR}:${TEST_DIR}:lib/* \
+                   --scan-class-path \
+                   --reports-dir=${REPORT_DIR}
+               """
+             } finally {
+               junit testResults: "${REPORT_DIR}/**/*.xml", allowEmptyResults: true
+             }
+           }
+         }
+       }
 
         stage('Package') {
             when { branch 'main' }
