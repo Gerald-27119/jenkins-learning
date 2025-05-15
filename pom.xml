@@ -84,17 +84,27 @@
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-dependency-plugin</artifactId>
                         <version>3.8.1</version>
+
                         <executions>
+                            <!-- 1) Kopiuj wszystkie zależności runtime (to obejmuje też compile) -->
                             <execution>
-                                <id>copy-dependencies</id>
+                                <id>copy-runtime-dependencies</id>
                                 <phase>generate-sources</phase>
-                                <goals>
-                                    <goal>copy-dependencies</goal>
-                                </goals>
+                                <goals><goal>copy-dependencies</goal></goals>
                                 <configuration>
                                     <outputDirectory>${project.basedir}/lib</outputDirectory>
-                                    <!-- runtime zawiera również compile -->
                                     <includeScope>runtime</includeScope>
+                                </configuration>
+                            </execution>
+
+                            <!-- 2) Kopiuj zależności testowe -->
+                            <execution>
+                                <id>copy-test-dependencies</id>
+                                <phase>generate-sources</phase>
+                                <goals><goal>copy-dependencies</goal></goals>
+                                <configuration>
+                                    <outputDirectory>${project.basedir}/lib</outputDirectory>
+                                    <includeScope>test</includeScope>
                                 </configuration>
                             </execution>
                         </executions>
