@@ -66,14 +66,14 @@ pipeline {
        }
 
         stage('Package') {
-            when { branch 'main' }
+            when { branch 'master' }
             steps {
                 sh "jar cf app-${BUILD_ID}.jar -C ${CLASS_DIR} ."
             }
         }
 
         stage('Archive') {
-            when { branch 'main' }
+            when { branch 'master' }
             steps {
                 archiveArtifacts artifacts: "app-${BUILD_ID}.jar,${REPORT_DIR}/**/*.xml", fingerprint: true
             }
