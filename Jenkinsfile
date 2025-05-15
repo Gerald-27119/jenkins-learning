@@ -1,39 +1,39 @@
 pipeline {
-    agent any
+	agent any
 
     environment {
-        TARGET_DIR = 'target'
-        CLASS_DIR  = "${TARGET_DIR}/classes"
-        TEST_DIR   = "${TARGET_DIR}/test-classes"
+		TARGET_DIR = 'target'
+        CLASS_DIR = "${TARGET_DIR}/classes"
+        TEST_DIR = "${TARGET_DIR}/test-classes"
         REPORT_DIR = "${TARGET_DIR}/reports"
         // Jeśli nadal potrzebujesz jakiegoś API_KEY, to odkomentuj:
         // API_KEY    = credentials('api-key-id')
     }
 
     options {
-        timestamps()
+		timestamps()
     }
 
     stages {
-        stage('Checkout') {
-            steps {
-                // publiczne repo → po prostu klonuje to, co podałeś w konfiguracji joba
+		stage('Checkout') {
+			steps {
+				// publiczne repo → po prostu klonuje to, co podałeś w konfiguracji joba
                 checkout scm
             }
         }
 
         stage('Debug') {
-            steps {
-                echo "The current GIT_BRANCH is: ${env.GIT_BRANCH}"
+			steps {
+				echo "The current GIT_BRANCH is: ${env.GIT_BRANCH}"
             }
         }
 
         stage('Validation') {
-            steps {
-                script {
-                    for (d in ['src/main/java','src/test/java','lib']) {
-                        if (!fileExists(d)) {
-                            error("‼️ Brak katalogu ${d}")
+			steps {
+				script {
+					for (d in ['src/main/java','src/test/java','lib']) {
+						if (!fileExists(d)) {
+							error("‼️ Brak katalogu ${d}")
                         }
                     }
                 }
@@ -41,8 +41,8 @@ pipeline {
         }
 
         stage('Build') {
-            steps {
-                sh """
+			steps {
+				sh """
                   mkdir -p ${CLASS_DIR} ${TEST_DIR} ${REPORT_DIR}
                   javac -d ${CLASS_DIR} -cp "lib/*" \$(find src/main/java -name '*.java')
                   javac -d ${TEST_DIR}  -cp "${CLASS_DIR}:lib/*" \$(find src/test/java  -name '*.java')
@@ -52,42 +52,50 @@ pipeline {
         }
 
        stage('Test') {
-         steps {
-           unstash 'build-artifacts'
+			steps {
+				unstash 'build-artifacts'
            sh 'echo "Zawartość lib:" && ls -l lib'
            script {
-             try {
-               sh """
+					try {
+						sh """
                  java -jar lib/junit-platform-console-standalone-*.jar \
                    --class-path ${CLASS_DIR}:${TEST_DIR}:lib/* \
                    --scan-class-path \
                    --reports-dir=${REPORT_DIR}
                """
              } finally {
-               junit testResults: "${REPORT_DIR}/**/*.xml", allowEmptyResults: true
+						junit testResults: "${REPORT_DIR}/**/*.xml", allowEmptyResults: true
              }
            }
          }
        }
 
         stage('Package') {
-           when {branch 'master'}
+			when {
+				expression {
+					return env.GIT_BRANCH == 'refs/remotes/origin/master'
+                   }
+               }
             steps {
-                sh "jar cf app-${BUILD_ID}.jar -C ${CLASS_DIR} ."
+				sh "jar cf app-${BUILD_ID}.jar -C ${CLASS_DIR} ."
             }
         }
 
         stage('Archive') {
-           when {branch 'master'}
+			when {
+				expression {
+					return env.GIT_BRANCH == 'refs/remotes/origin/master'
+                   }
+               }
             steps {
-                archiveArtifacts artifacts: "app-${BUILD_ID}.jar,${REPORT_DIR}/**/*.xml", fingerprint: true
+				archiveArtifacts artifacts: "app-${BUILD_ID}.jar,${REPORT_DIR}/**/*.xml", fingerprint: true
             }
         }
     }
 
     post {
-        always {
-            echo "🔥 Pipeline zakończony (status: ${currentBuild.currentResult})"
+		always {
+			echo "🔥 Pipeline zakończony (status: ${currentBuild.currentResult})"
         }
     }
 }
