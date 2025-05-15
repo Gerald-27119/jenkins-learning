@@ -54,7 +54,6 @@ pipeline {
        stage('Test') {
          steps {
            unstash 'build-artifacts'
-           // DOPISZ to:
            sh 'echo "Zawartość lib:" && ls -l lib'
            script {
              try {
@@ -72,14 +71,14 @@ pipeline {
        }
 
         stage('Package') {
-            when { branch 'master' }
+            when { branch 'origin/master' }
             steps {
                 sh "jar cf app-${BUILD_ID}.jar -C ${CLASS_DIR} ."
             }
         }
 
         stage('Archive') {
-            when { branch 'master' }
+            when { branch 'origin/master' }
             steps {
                 archiveArtifacts artifacts: "app-${BUILD_ID}.jar,${REPORT_DIR}/**/*.xml", fingerprint: true
             }
