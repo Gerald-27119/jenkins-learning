@@ -72,9 +72,8 @@ pipeline {
 
         stage('Package') {
 			when {
-				equals expected: 'main', actual: env.GIT_BRANCH.replace('origin/', '')
+				expression { return env.BRANCH_NAME == 'master' }
 			}
-
             steps {
 				sh "jar cf app-${BUILD_ID}.jar -C ${CLASS_DIR} ."
             }
@@ -82,7 +81,7 @@ pipeline {
 
         stage('Archive') {
 			when {
-				equals expected: 'main', actual: env.GIT_BRANCH.replace('origin/', '')
+				expression { return env.BRANCH_NAME == 'master' }
 			}
 
             steps {
