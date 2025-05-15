@@ -72,10 +72,9 @@ pipeline {
 
         stage('Package') {
 			when {
-				expression {
-					return env.GIT_BRANCH == 'refs/remotes/origin/master'
-                   }
-               }
+				equals expected: 'main', actual: env.GIT_BRANCH.replace('origin/', '')
+			}
+
             steps {
 				sh "jar cf app-${BUILD_ID}.jar -C ${CLASS_DIR} ."
             }
@@ -83,10 +82,9 @@ pipeline {
 
         stage('Archive') {
 			when {
-				expression {
-					return env.GIT_BRANCH == 'refs/remotes/origin/master'
-                   }
-               }
+				equals expected: 'main', actual: env.GIT_BRANCH.replace('origin/', '')
+			}
+
             steps {
 				archiveArtifacts artifacts: "app-${BUILD_ID}.jar,${REPORT_DIR}/**/*.xml", fingerprint: true
             }
