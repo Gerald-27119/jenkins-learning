@@ -7,7 +7,7 @@ pipeline {
   }
 
   environment {
-    APP_NAME              = 'moja-microservice'
+    APP_NAME              = 'adam27119/custom-jenkins-agent:1.0.2'
     DOCKER_CREDENTIALS_ID = '77e766fd-1c1e-40b2-a0b2-dfcc71d65b46'
     DOCKER_REGISTRY       = 'docker.io'
     DOCKER_REPO           = "adam27119/${APP_NAME}"
