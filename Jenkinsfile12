@@ -16,7 +16,6 @@ pipeline {
   options {
     // Zwiększamy trwałość zapisu logów
     timestamps()
-    ansiColor('xterm')
     // Maksymalnie trzy przechowywane buildy
     buildDiscarder(logRotator(numToKeepStr: '10'))
   }
