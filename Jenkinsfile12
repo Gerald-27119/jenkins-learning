@@ -1,0 +1,102 @@
+pipeline {
+  agent {
+    docker {
+      image '<TwojDockerID>/custom-jenkins-agent:1.0.1'
+      args  '-u root -v /var/run/docker.sock:/var/run/docker.sock'
+    }
+  }
+
+  environment {
+    APP_NAME      = 'moja-microservice'
+    DOCKER_CREDENTIALS_ID = 'dockerhub-credentials'  // ID utworzonego w Jenkinsie poświadczenia
+    DOCKER_REGISTRY = 'docker.io'
+    DOCKER_REPO      = '<TwojDockerID>/${APP_NAME}'
+  }
+
+  options {
+    // Zwiększamy trwałość zapisu logów
+    timestamps()
+    ansiColor('xterm')
+    // Maksymalnie trzy przechowywane buildy
+    buildDiscarder(logRotator(numToKeepStr: '10'))
+  }
+
+  stages {
+    stage('Checkout') {
+      steps {
+        git url: 'git@github.com:TwojRepo/moja-microservice.git', branch: 'main'
+      }
+    }
+
+    stage('Static Analysis') {
+      steps {
+        // przykładowo: analiza kodu staticcheck / spotbugs / lint
+        sh 'mvn validate'
+      }
+    }
+
+    stage('Parallel Tests & Coverage') {
+      parallel {
+        stage('Unit Tests') {
+          steps {
+            sh 'mvn test'
+            // generujemy raport cobertura/jacoco
+            junit '**/target/surefire-reports/*.xml'
+            jacoco execPattern: '**/target/jacoco.exec'
+          }
+        }
+        stage('Integration Tests') {
+          steps {
+            sh 'mvn verify -Pintegration-tests'
+            junit '**/target/failsafe-reports/*.xml'
+          }
+        }
+      }
+    }
+
+    stage('Archive Artifacts') {
+      steps {
+        archiveArtifacts artifacts: '**/target/*.jar', fingerprint: true
+        archiveArtifacts artifacts: '**/target/site/jacoco/**/*', allowEmptyArchive: true
+      }
+    }
+
+    stage('Build Docker Image') {
+      steps {
+        script {
+          dockerImage = docker.build("${DOCKER_REPO}:${env.BUILD_NUMBER}", "-f Dockerfile .")
+          dockerImageLatest = docker.build("${DOCKER_REPO}:latest", "-f Dockerfile .")
+        }
+      }
+    }
+
+    stage('Push to Docker Hub') {
+      steps {
+        withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS_ID,
+                                         usernameVariable: 'DOCKER_USER',
+                                         passwordVariable: 'DOCKER_PASS')]) {
+          sh "echo $DOCKER_PASS | docker login ${DOCKER_REGISTRY} -u $DOCKER_USER --password-stdin"
+          sh "docker push ${DOCKER_REPO}:${env.BUILD_NUMBER}"
+          sh "docker push ${DOCKER_REPO}:latest"
+        }
+      }
+    }
+  }
+
+  post {
+    always {
+      echo 'Post-build cleanup'
+      sh """
+         docker rmi ${DOCKER_REPO}:${env.BUILD_NUMBER} || true
+         docker rmi ${DOCKER_REPO}:latest || true
+         docker system prune -f || true
+      """
+    }
+    success {
+      echo 'Pipeline zakończony sukcesem 🎉'
+    }
+    failure {
+      echo 'Pipeline zakończony niepowodzeniem 💥'
+    }
+  }
+}
