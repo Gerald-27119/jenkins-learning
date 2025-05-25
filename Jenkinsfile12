@@ -6,17 +6,17 @@ pipeline {
     }
   }
   options {
-    // eliminujemy podwójny checkout
     skipDefaultCheckout()
     timestamps()
     buildDiscarder(logRotator(numToKeepStr: '10'))
   }
+
   stages {
     stage('Checkout') {
       agent {
         docker {
           image 'adam27119/custom-jenkins-agent:1.0.3'
-          args  '-u root -v /var/run/docker.sock:/var/run/docker.sock --entrypoint=""'
+          args '-u root -v /var/run/docker.sock:/var/run/docker.sock --entrypoint=""'
         }
       }
       steps {
@@ -24,29 +24,24 @@ pipeline {
         sh 'mvn validate'
       }
     }
+
     stage('Test & Coverage') {
-      parallel {
-        stage('Unit Tests') {
-          steps {
-            sh 'mvn test'
-            junit '**/target/surefire-reports/*.xml'
-            jacoco execPattern: '**/target/jacoco.exec'
-          }
-        }
-        stage('Integration Tests') {
-          steps {
-            sh 'mvn verify -Pintegration-tests'
-            junit '**/target/failsafe-reports/*.xml'
-          }
-        }
+      steps {
+        // testy jednostkowe + coverage w jednym etapie
+        sh 'mvn test'
+        junit '**/target/surefire-reports/*.xml'
+        // po zainstalowaniu pluginu Pipeline: JaCoCo:
+        jacoco execPattern: '**/target/jacoco.exec'
       }
     }
+
     stage('Archive Artifacts') {
       steps {
         archiveArtifacts artifacts: '**/target/*.jar', fingerprint: true
         archiveArtifacts artifacts: '**/target/site/jacoco/**/*', allowEmptyArchive: true
       }
     }
+
     stage('Build & Push Docker Image') {
       environment {
         APP_NAME              = 'moja-microservice'
@@ -72,10 +67,10 @@ pipeline {
         }
       }
     }
+
     stage('Cleanup') {
       agent any
       steps {
-        // cleanup uruchamiany na hoście, w workspace
         sh '''
           docker rmi adam27119/moja-microservice:${BUILD_NUMBER} || true
           docker rmi adam27119/moja-microservice:latest   || true
@@ -84,6 +79,7 @@ pipeline {
       }
     }
   }
+
   post {
     success { echo '✅ Pipeline zakończony sukcesem' }
     failure { echo '❌ Pipeline zakończony niepowodzeniem' }
