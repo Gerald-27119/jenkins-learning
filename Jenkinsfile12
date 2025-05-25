@@ -10,7 +10,7 @@ pipeline {
     timestamps()
     buildDiscarder(logRotator(numToKeepStr: '10'))
   }
-
+//test
   stages {
     stage('Checkout') {
       agent {
