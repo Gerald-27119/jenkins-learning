@@ -12,10 +12,15 @@ pipeline {
     buildDiscarder(logRotator(numToKeepStr: '10'))
   }
   stages {
-    stage('Checkout & Lint') {
+    stage('Checkout') {
+      agent {
+        docker {
+          image 'adam27119/custom-jenkins-agent:1.0.3'
+          args  '-u root -v /var/run/docker.sock:/var/run/docker.sock --entrypoint=""'
+        }
+      }
       steps {
-        // teraz git klonuje wewnątrz kontenera
-        checkout scm
+        git url: 'https://github.com/Gerald-27119/jenkins-learning.git', branch: 'main'
         sh 'mvn validate'
       }
     }
