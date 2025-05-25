@@ -2,31 +2,23 @@ pipeline {
   agent {
     docker {
       image 'adam27119/custom-jenkins-agent:1.0.3'
-      args  '-u root -v /var/run/docker.sock:/var/run/docker.sock --entrypoint=""'
+      args  '-u root -v /var/run/docker.sock:/var/run/docker.sock'
     }
   }
-
   options {
+    // eliminujemy podwójny checkout
     skipDefaultCheckout()
     timestamps()
     buildDiscarder(logRotator(numToKeepStr: '10'))
   }
-
-  environment {
-    APP_NAME              = 'moja-microservice'
-    DOCKER_REPOSITORY     = "adam27119/${APP_NAME}"
-    DOCKER_REGISTRY       = 'docker.io'
-    DOCKER_CREDENTIALS_ID = '77e766fd-1c1e-40b2-a0b2-dfcc71d65b46'
-  }
-
   stages {
     stage('Checkout & Lint') {
       steps {
+        // teraz git klonuje wewnątrz kontenera
         checkout scm
         sh 'mvn validate'
       }
     }
-
     stage('Test & Coverage') {
       parallel {
         stage('Unit Tests') {
@@ -44,15 +36,19 @@ pipeline {
         }
       }
     }
-
     stage('Archive Artifacts') {
       steps {
         archiveArtifacts artifacts: '**/target/*.jar', fingerprint: true
         archiveArtifacts artifacts: '**/target/site/jacoco/**/*', allowEmptyArchive: true
       }
     }
-
     stage('Build & Push Docker Image') {
+      environment {
+        APP_NAME              = 'moja-microservice'
+        DOCKER_REPOSITORY     = "adam27119/${APP_NAME}"
+        DOCKER_CREDENTIALS_ID = '77e766fd-1c1e-40b2-a0b2-dfcc71d65b46'
+        DOCKER_REGISTRY       = 'docker.io'
+      }
       steps {
         script {
           def tagNum    = "${DOCKER_REPOSITORY}:${env.BUILD_NUMBER}"
@@ -71,19 +67,18 @@ pipeline {
         }
       }
     }
-
     stage('Cleanup') {
       agent any
       steps {
+        // cleanup uruchamiany na hoście, w workspace
         sh '''
-          docker rmi ${DOCKER_REPOSITORY}:${BUILD_NUMBER} || true
-          docker rmi ${DOCKER_REPOSITORY}:latest   || true
-          docker system prune -f                   || true
+          docker rmi adam27119/moja-microservice:${BUILD_NUMBER} || true
+          docker rmi adam27119/moja-microservice:latest   || true
+          docker system prune -f                         || true
         '''
       }
     }
   }
-
   post {
     success { echo '✅ Pipeline zakończony sukcesem' }
     failure { echo '❌ Pipeline zakończony niepowodzeniem' }
