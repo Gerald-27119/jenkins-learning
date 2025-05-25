@@ -20,7 +20,7 @@ pipeline {
         }
       }
       steps {
-        git url: 'https://github.com/Gerald-27119/jenkins-learning.git', branch: 'main'
+        git url: 'https://github.com/Gerald-27119/jenkins-learning.git', branch: 'master'
         sh 'mvn validate'
       }
     }
