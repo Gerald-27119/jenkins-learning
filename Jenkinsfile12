@@ -1,68 +1,47 @@
 pipeline {
-  agent {
-    docker {
-      image 'adam27119/custom-jenkins-agent:1.0.3'
-      args  '-u root -v /var/run/docker.sock:/var/run/docker.sock'
-    }
-  }
-
-  environment {
-    // Nazwa Twojej aplikacji (nie agenta!)
-    APP_NAME              = 'moja-microservice'
-    DOCKER_REGISTRY       = 'docker.io'
-    DOCKER_REPO           = "adam27119/${APP_NAME}"
-    DOCKER_CREDENTIALS_ID = '77e766fd-1c1e-40b2-a0b2-dfcc71d65b46'
-  }
-
+  // Nie chcemy domyślnego checkout
   options {
-    timestamps()
     skipDefaultCheckout()
+    timestamps()
     buildDiscarder(logRotator(numToKeepStr: '10'))
   }
 
   stages {
-    stage('Checkout') {
-      steps {
-        git(
-          url: 'https://github.com/Gerald-27119/jenkins-learning',
-          branch: 'main'
-        )
+    stage('Build & Push') {
+      agent {
+        docker {
+          image 'adam27119/custom-jenkins-agent:1.0.3'
+          args  '-u root -v /var/run/docker.sock:/var/run/docker.sock'
+        }
       }
-    }
-
-    stage('Static Analysis') {
+      environment {
+        APP_NAME              = 'moja-microservice'
+        DOCKER_REGISTRY       = 'docker.io'
+        DOCKER_REPO           = "adam27119/${APP_NAME}"
+        DOCKER_CREDENTIALS_ID = '77e766fd-1c1e-40b2-a0b2-dfcc71d65b46'
+      }
       steps {
+        // Jedyny checkout, wewnątrz kontenera
+        checkout scm
+
         sh 'mvn validate'
-      }
-    }
 
-    stage('Parallel Tests & Coverage') {
-      parallel {
-        stage('Unit Tests') {
-          steps {
+        // równoległe testy
+        parallel(
+          "Unit Tests": {
             sh 'mvn test'
             junit '**/target/surefire-reports/*.xml'
             jacoco execPattern: '**/target/jacoco.exec'
-          }
-        }
-        stage('Integration Tests') {
-          steps {
+          },
+          "Integration Tests": {
             sh 'mvn verify -Pintegration-tests'
             junit '**/target/failsafe-reports/*.xml'
           }
-        }
-      }
-    }
+        )
 
-    stage('Archive Artifacts') {
-      steps {
         archiveArtifacts artifacts: '**/target/*.jar', fingerprint: true
         archiveArtifacts artifacts: '**/target/site/jacoco/**/*', allowEmptyArchive: true
-      }
-    }
 
-    stage('Build Docker Image') {
-      steps {
         script {
           def tagNum    = "${DOCKER_REPO}:${env.BUILD_NUMBER}"
           def tagLatest = "${DOCKER_REPO}:latest"
@@ -70,11 +49,7 @@ pipeline {
           docker.build(tagNum, "-f Dockerfile .")
           docker.build(tagLatest, "-f Dockerfile .")
         }
-      }
-    }
 
-    stage('Push to Docker Hub') {
-      steps {
         withCredentials([usernamePassword(
           credentialsId: DOCKER_CREDENTIALS_ID,
           usernameVariable: 'DOCKER_USER',
@@ -86,23 +61,23 @@ pipeline {
         }
       }
     }
+
+    stage('Cleanup') {
+      // wracamy na hosta (dowolny agent)
+      agent any
+      steps {
+        // Tutaj jest workspace i FilePath
+        sh '''
+          docker rmi adam27119/moja-microservice:${BUILD_NUMBER} || true
+          docker rmi adam27119/moja-microservice:latest   || true
+          docker system prune -f                         || true
+        '''
+      }
+    }
   }
 
   post {
-    always {
-      echo 'Post-build cleanup'
-      // Używamy '$VAR' w shellu, by to tam rozwiązało zmienną środowiskową
-      sh '''#!/bin/sh
-        docker rmi $DOCKER_REPO:$BUILD_NUMBER || true
-        docker rmi $DOCKER_REPO:latest   || true
-        docker system prune -f           || true
-      '''
-    }
-    success {
-      echo '✅ Pipeline zakończony sukcesem'
-    }
-    failure {
-      echo '❌ Pipeline zakończony niepowodzeniem'
-    }
+    success { echo '✅ Pipeline zakończony sukcesem' }
+    failure { echo '❌ Pipeline zakończony niepowodzeniem' }
   }
 }
